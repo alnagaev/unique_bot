@@ -121,7 +121,7 @@ def send_memes(message):
 def send_text(message):
     print(message)
     if message.text.lower() == 'привет':
-        bot.send_message(message.chat.id, 'Привет, мой создатель')
+        bot.send_message(message.chat.id, 'Привет, мой создатель ')
     elif message.text.lower() == 'пока':
         bot.send_message(message.chat.id, 'Прощай, создатель')
 
