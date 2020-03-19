@@ -9,7 +9,9 @@ from images import *
 import time
 import json
 
-api_key = '909674394:AAFBBZaj84E6gkg6pJljbCJKjws9maUdWzU'
+with open('token.txt', 'r') as f:
+    api_key = f.read()
+
 bot = telebot.TeleBot(api_key)
 
 proxy_dict = {'basic_auth': ('sergeychuvakin1_mail', '44f869ef05'), 'proxy_ip': '5.182.118.50:30001'}
@@ -79,15 +81,16 @@ def cmd_reset(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
+    print(call.message.chat.id)
     bot.answer_callback_query(call.id, "Доставляю")
     try:
         photos = get_unique('images', json_key(call.data))
         for i in photos:
-            bot.send_photo(call.id, i)
+            bot.send_photo(call.message.chat.id, i)
     except Exception as e:
         print(e)
         print(os.getcwd())
-        bot.send_message(call.id, 'Что-то пошло не так')
+        bot.send_message(call.message.chat.id, 'Что-то пошло не так')
 
 
 @bot.message_handler(content_types=['text'])
