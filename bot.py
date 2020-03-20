@@ -90,6 +90,14 @@ def check_document(message):
     bot.send_message(message.chat.id, 'smells like photo')
 
 
+# @bot.message_handler(content_types=['photo'])
+# def check_docs(message):
+#     print(message)
+#     fileID = message.photo[-1].file_id
+#     file = bot.get_file(fileID)
+#     bot.send_media_group(message.chat.id, [types.InputMediaPhoto(file.file_id, caption=file.file_size)])
+
+
 while True:
     try:
         bot.polling(none_stop=True)
