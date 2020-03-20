@@ -48,7 +48,7 @@ def callback_query(call):
     bot.answer_callback_query(call.id, "Доставляю")
     try:
         photos = images.get_unique('images', bot_utils.json_key(call.data))
-        if len(photos) > 3:
+        if len(photos) > 2:
             bot.send_media_group(call.message.chat.id, (types.InputMediaPhoto(i) for i in photos))
         else:
             for i in photos:
@@ -69,8 +69,9 @@ def check_document(message):
     else:
         name = str(message.chat.id)
         bot_utils.json_add(name, name)
-    if os.path.basename(os.getcwd()) != 'unique_bot':
-        os.chdir('..')
+
+    assert os.path.basename(os.getcwd()) == 'unique_bot', 'Directory error'
+
     Path("./images/{}".format(name)).mkdir(parents=True, exist_ok=True)
     print(message)
     fileID = message.photo[-1].file_id
