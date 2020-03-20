@@ -1,14 +1,19 @@
 # -*- coding: utf-8 -*-
 
 from enum import Enum
+from telebot import apihelper
+
 
 db_file = "database.vdb"
+apihelper.proxy = {'https': 'socks5h://geek:socks@t.geekclass.ru:7777'}
+
+with open('token.txt', 'r') as f:
+    api_key = f.read()
 
 
 class States(Enum):
     """
-    Мы используем БД Vedis, в которой хранимые значения всегда строки,
-    поэтому и тут будем использовать тоже строки (str)
+    Задел на масштабирование для хранения состояний
     """
     S_START = "0"  # Начало нового диалога
     S_ENTER_NAME = "1"
