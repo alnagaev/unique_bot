@@ -7,6 +7,7 @@ import images
 import config
 import time
 import bot_utils
+import sql_lite_db
 
 bot = telebot.TeleBot(config.api_key)
 
@@ -59,43 +60,53 @@ def callback_query(call):
         bot.send_message(call.message.chat.id, 'Что-то пошло не так')
 
 
-@bot.message_handler(content_types=['photo'])
-def check_document(message):
-    # Эту функцию стоит переработать, слишком много действий в одном def
-
-    if message.chat.type == 'group':
-        name = str(message.chat.id)  # Задумка была другая. Прости, Юра, мы все проебали
-        bot_utils.json_add(message.chat.title, name)
-    else:
-        name = str(message.chat.id)
-        bot_utils.json_add(name, name)
-
-    assert os.path.basename(os.getcwd()) == 'unique_bot', 'Directory error'
-
-    Path("./images/{}".format(name)).mkdir(parents=True, exist_ok=True)
-    print(message)
-    fileID = message.photo[-1].file_id
-    print('fileID =', fileID)
-    file = bot.get_file(fileID)
-    if '{}.jpg'.format(fileID) not in os.listdir('images/{}'.format(name)):
-        downloaded_file = bot.download_file(file.file_path)
-
-        with open('images/{}/{}.jpg'.format(name, fileID), 'xb') as new_file:
-            try:
-                new_file.write(downloaded_file)
-            except Exception as e:
-                print(str(e))
-    else:
-        print('already in directory')
-    bot.send_message(message.chat.id, 'smells like photo')
-
-
 # @bot.message_handler(content_types=['photo'])
-# def check_docs(message):
+# def check_document(message):
+#     # Эту функцию стоит переработать, слишком много действий в одном def
+#
+#     if message.chat.type == 'group':
+#         name = str(message.chat.id)  # Задумка была другая. Прости, Юра, мы все проебали
+#         bot_utils.json_add(message.chat.title, name)
+#     else:
+#         name = str(message.chat.id)
+#         bot_utils.json_add(name, name)
+#
+#     assert os.path.basename(os.getcwd()) == 'unique_bot', 'Directory error'
+#
+#     Path("./images/{}".format(name)).mkdir(parents=True, exist_ok=True)
 #     print(message)
 #     fileID = message.photo[-1].file_id
+#     print('fileID =', fileID)
 #     file = bot.get_file(fileID)
-#     bot.send_media_group(message.chat.id, [types.InputMediaPhoto(file.file_id, caption=file.file_size)])
+#     if '{}.jpg'.format(fileID) not in os.listdir('images/{}'.format(name)):
+#         downloaded_file = bot.download_file(file.file_path)
+#
+#         with open('images/{}/{}.jpg'.format(name, fileID), 'xb') as new_file:
+#             try:
+#                 new_file.write(downloaded_file)
+#             except Exception as e:
+#                 print(str(e))
+#     else:
+#         print('already in directory')
+#     bot.send_message(message.chat.id, 'smells like photo')
+
+
+def parse_response(message):
+    type = message['content_type']
+    date = message['date']
+    file_id = message[type][1]['file_id']
+    file_size = message[type][1]['file_size']
+    return file_id, date, file_size, type
+
+
+@bot.message_handler(content_types=['photo', 'video'])
+def check_docs(message):
+    print(message)
+    fileID = message.photo[-1].file_id
+    file = bot.get_file(fileID)
+    bot.send_media_group(message.chat.id, [types.InputMediaPhoto(file.file_id, caption=file.file_size)])
+    sql_lite_db.add_values(parse_response(message))
+
 
 
 while True:
