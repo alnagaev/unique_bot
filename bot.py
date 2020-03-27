@@ -1,13 +1,11 @@
 import telebot
 from telebot import types
-import os
 import dbworker
-from pathlib import Path
-import images
 import config
 import time
-import bot_utils
 import sql_lite_db
+import jsonpickle
+import json
 
 bot = telebot.TeleBot(config.api_key)
 
@@ -27,7 +25,7 @@ def cmd_help(message):
 # Начало диалога
 @bot.message_handler(commands=["start"])
 def cmd_start(message):
-    keyboard = render_keyboard(bot_utils.show_keys())
+    keyboard = render_keyboard(sql_lite_db.get_chats())
     bot.send_message(message.chat.id, 'Выберите в меню группу, которая вам интересна',
                      reply_markup=keyboard)
     dbworker.set_state(message.chat.id, config.States.S_ENTER_NAME.value)
@@ -37,7 +35,7 @@ def cmd_start(message):
 @bot.message_handler(commands=["reset"])
 def cmd_reset(message):
     bot.send_message(message.chat.id, "Что ж, начнём по-новой. Вот мои коллекции: ")
-    keyboard = render_keyboard(bot_utils.show_keys())
+    keyboard = render_keyboard(sql_lite_db.get_chats())
     bot.send_message(message.chat.id, 'Выберите в меню что вам интересно!',
                      reply_markup=keyboard)
     dbworker.set_state(message.chat.id, config.States.S_ENTER_NAME.value)
@@ -48,65 +46,59 @@ def callback_query(call):
     print(call.message.chat.id)
     bot.answer_callback_query(call.id, "Доставляю")
     try:
-        photos = images.get_unique('images', bot_utils.json_key(call.data))
-        if len(photos) > 2:
-            bot.send_media_group(call.message.chat.id, (types.InputMediaPhoto(i) for i in photos))
+        all_data = sql_lite_db.get_values('chat_title', call.data)
+        if len(all_data['photos']) > 2:
+            bot.send_media_group(call.message.chat.id, (types.InputMediaPhoto(i) for i in all_data['photos']))
         else:
-            for i in photos:
+            for i in all_data['photos']:
                 bot.send_photo(call.message.chat.id, i)
+        if len(all_data['videos']) > 0:
+            bot.send_media_group(call.message.chat.id, (types.InputMediaVideo(i) for i in all_data['videos']))
+        if len(all_data['gifs']) > 0:
+            bot.send_media_group(call.message.chat.id, (types.InputMediaDocument(i) for i in all_data['gifs']))
+        if len(all_data['doc_images']) > 0:
+            for doc in all_data['doc_images']:
+                bot.send_document(call.message.chat.id, doc)
+
     except Exception as e:
         print(e)
-        print(os.getcwd())
         bot.send_message(call.message.chat.id, 'Что-то пошло не так')
 
 
-# @bot.message_handler(content_types=['photo'])
-# def check_document(message):
-#     # Эту функцию стоит переработать, слишком много действий в одном def
-#
-#     if message.chat.type == 'group':
-#         name = str(message.chat.id)  # Задумка была другая. Прости, Юра, мы все проебали
-#         bot_utils.json_add(message.chat.title, name)
-#     else:
-#         name = str(message.chat.id)
-#         bot_utils.json_add(name, name)
-#
-#     assert os.path.basename(os.getcwd()) == 'unique_bot', 'Directory error'
-#
-#     Path("./images/{}".format(name)).mkdir(parents=True, exist_ok=True)
-#     print(message)
-#     fileID = message.photo[-1].file_id
-#     print('fileID =', fileID)
-#     file = bot.get_file(fileID)
-#     if '{}.jpg'.format(fileID) not in os.listdir('images/{}'.format(name)):
-#         downloaded_file = bot.download_file(file.file_path)
-#
-#         with open('images/{}/{}.jpg'.format(name, fileID), 'xb') as new_file:
-#             try:
-#                 new_file.write(downloaded_file)
-#             except Exception as e:
-#                 print(str(e))
-#     else:
-#         print('already in directory')
-#     bot.send_message(message.chat.id, 'smells like photo')
-
-
 def parse_response(message):
-    type = message['content_type']
-    date = message['date']
-    file_id = message[type][1]['file_id']
-    file_size = message[type][1]['file_size']
-    return file_id, date, file_size, type
+    message = json.loads(jsonpickle.encode(message))
+    type_m = message["content_type"]
+    if type_m == 'document' and message['document']['mime_type'] == 'video/mp4':
+        type_m = 'video/mp4'
+    if type_m == 'document' and message['document']['mime_type'] == 'image/jpeg':
+        type_m = 'image/jpeg'
+
+    def get_finfo(message):
+        if type_m == 'photo':
+            return message[type_m][1]["file_id"], message[type_m][1]["file_size"]
+        elif type_m == 'video':
+            return message[type_m]["file_id"], message[type_m]["file_size"]
+        elif type_m == 'video/mp4':
+            return message['thumb']["file_id"], message['thumb']["file_size"]
+        elif type_m == 'image/jpeg':
+            return message['document']["file_id"], message['document']["file_size"]
+
+    file_id, file_size = get_finfo(message)
+    chat_id = message["chat"]["id"]
+    chat_title = message["chat"]["title"]
+    date = message["date"]
+    return file_id, date, file_size, type_m, chat_id, chat_title
 
 
-@bot.message_handler(content_types=['photo', 'video'])
+@bot.message_handler(content_types=['photo', 'video', 'document'])
 def check_docs(message):
     print(message)
-    fileID = message.photo[-1].file_id
-    file = bot.get_file(fileID)
-    bot.send_media_group(message.chat.id, [types.InputMediaPhoto(file.file_id, caption=file.file_size)])
-    sql_lite_db.add_values(parse_response(message))
-
+    row = parse_response(message)
+    try:
+        sql_lite_db.add_values(row)
+    except Exception as e:
+        bot.send_message(message.chat.id, 'Data not collected yet')
+        print(str(e))
 
 
 while True:

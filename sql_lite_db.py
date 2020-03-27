@@ -1,32 +1,76 @@
 import sqlite3
+from datetime import datetime
 
-conn = sqlite3.connect('database.db')
-c = conn.cursor()
-test_values = ('AgACAgIAAxkBAAICUl56giE7gQSxdkzxkDEgZjBrZzhzAAJerDEb91PZS8QIzg_i0uG0OxDBDgAEAQADAgADbQADh2UEAAEYBA', '1585087009', 119451, 'photo')
+test_values = (
+    'AgACAgIAAxkBAAICUl56giE7gQSxdkzxkDEgZjBrZzhzAAJerDEb91PZS8QIzg_i0uG0OxDBDgAEAQADAgADbQADh2UEAAEYBA', '1585087009',
+    119452, 'photo', 1, 'testo')
+
+'''******************************files*******************************************************'''
+'''file_id text, date text, file_size integer, media_type text, chat_id text, chat_title text'''
 
 
-def get_values():
-    c.execute("SELECT  * FROM files GROUP BY file_size")
-    print(c.fetchall())
+def test_query():
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute(
+        '''DELETE FROM files
+            WHERE file_id IS NULL OR TRIM(file_id) = '' ''')
+    conn.commit()
+    c.close()
 
 
-def create_table():
-    c.execute('''CREATE TABLE IF NOT EXISTS files
-                (file_id text, date text, file_size integer, media_type text)''')
+test_query()
+
+def get_values(filter=None, filterable=None):
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute("SELECT  file_id FROM files GROUP BY file_size")
+    if filter and filterable:
+        start = datetime.now()
+        c.execute("SELECT  file_id FROM files  WHERE {} = ? AND media_type = 'photo' GROUP BY file_size".format(filter),
+                  (filterable,))
+        photos = [i[0] for i in c.fetchall()]
+        c.execute("SELECT  file_id FROM files  WHERE {} = ? AND media_type = 'video' GROUP BY file_size".format(filter),
+                  (filterable,))
+        videos = [i[0] for i in c.fetchall()]
+        c.execute(
+            "SELECT  file_id FROM files  WHERE {} = ? AND media_type = 'video/mp4' GROUP BY file_size".format(filter),
+            (filterable,))
+        gifs = [i[0] for i in c.fetchall()]
+        c.execute(
+            "SELECT  file_id FROM files  WHERE {} = ? AND media_type = 'image/jpeg' GROUP BY file_size".format(filter),
+            (filterable,))
+        doc_images = [i[0] for i in c.fetchall()]
+        c.close()
+        stop = datetime.now()
+        delta = stop - start
+        print(delta)
+        return {'photos': photos, 'videos': videos, 'gifs': gifs, 'doc_images': doc_images}
+
+
+
+
+
+
+def get_chats():
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    c.execute('''SELECT DISTINCT chat_title FROM files''')
+    final_result = [i[0] for i in c.fetchall() if i[0] is not None]
+    return final_result
 
 
 def add_values(values):
-    assert len(values) == 4, 'Wrong values'
+    conn = sqlite3.connect('database.db')
+    c = conn.cursor()
+    assert len(values) == 6, 'Wrong values'
 
     c.execute(
-        "INSERT INTO files VALUES (?, ?, ?, ?)", values)
-    # Save (commit) the changes
+        '''CREATE TABLE IF NOT EXISTS files
+                (file_id text, date text, file_size integer, media_type text, chat_id text, chat_title text)''')
+    c.execute('''INSERT INTO files VALUES (?, ?, ?, ?, ?, ?)''', values)
     conn.commit()
+    c.close()
+    print('value added')
 
-    # We can also close the connection if we are done with it.
-    # Just be sure any changes have been committed or they will be lost.
-
-create_table()
-add_values(test_values)
-get_values()
-c.close()
+# get_values('file_size', 119452)
