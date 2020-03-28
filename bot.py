@@ -28,8 +28,17 @@ def cmd_start(message):
     keyboard = render_keyboard(sql_lite_db.get_chats())
     bot.send_message(message.chat.id, 'Выберите в меню группу, которая вам интересна',
                      reply_markup=keyboard)
-    dbworker.set_state(message.chat.id, config.States.S_ENTER_NAME.value)
+    print(message)
+    sql_lite_db.session_add((message.from_user.id, message.date))
 
+
+#
+# @bot.message_handler(commands=["start"])
+# def cmd_start(message):
+#     keyboard = render_keyboard(sql_lite_db.get_chats())
+#     bot.send_message(message.chat.id, 'Выберите в меню группу, которая вам интересна',
+#                      reply_markup=keyboard)
+#     print(message)
 
 # По команде /reset будем сбрасывать состояния, возвращаясь к началу диалога
 @bot.message_handler(commands=["reset"])
@@ -46,7 +55,7 @@ def callback_query(call):
     print(call.message.chat.id)
     bot.answer_callback_query(call.id, "Доставляю")
     try:
-        all_data = sql_lite_db.get_values('chat_title', call.data)
+        all_data = sql_lite_db.get_values('chat_title', call.data, call.message.from_user.id)
         if len(all_data['photos']) > 2:
             bot.send_media_group(call.message.chat.id, (types.InputMediaPhoto(i) for i in all_data['photos']))
         else:
