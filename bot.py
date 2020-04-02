@@ -8,12 +8,33 @@ import json
 import logging
 import logging.config
 import inspect
+from time import sleep
 
 """test revert commit"""
+from flask import Flask, request
+from flask_sslify import SSLify
 
-bot = telebot.TeleBot(config.api_key)
+app = Flask(__name__)
+sslify = SSLify(app)
+
+secret = config.api_key
+bot = telebot.TeleBot(config.api_key, threaded=False)
+
+bot.remove_webhook()
+time.sleep(1)
+bot.set_webhook(url="https://baklofen.pythonanywhere.com /{}".format(secret))
+
+""""""
+
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger("bot")
+
+
+@app.route('/{}'.format(secret), methods=["POST"])
+def webhook():
+    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    print("Message")
+    return "ok", 200
 
 
 def render_keyboard(keys):
@@ -145,11 +166,14 @@ def check_docs(message):
         logger.error(str(e))
 
 
-while True:
-    try:
-        bot.polling(none_stop=True)
+# while True:
+#     try:
+#         bot.polling(none_stop=True)
+#
+#     except Exception as e:
+#         logger.error(str(e))  # или просто print(e) если у вас логгера нет,
+#         # или import traceback; traceback.print_exc() для печати полной инфы
+#         time.sleep(15)
 
-    except Exception as e:
-        logger.error(str(e))  # или просто print(e) если у вас логгера нет,
-        # или import traceback; traceback.print_exc() для печати полной инфы
-        time.sleep(15)
+if __name__ == '__main__':
+    app.run()
