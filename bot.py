@@ -49,7 +49,7 @@ def cmd_start(message):
         bot.send_message(message.chat.id, 'Выберите в меню группу, которая вам интересна',
                          reply_markup=keyboard)
         logger.info(message)
-        if sql_lite_db.get_user_mode(message.chat.id) == 0:
+        if sql_lite_db.get_user_mode(message.chat.id) is None:
             sql_lite_db.set_user_mode(message.chat.id, 'last')
             logger.info(sql_lite_db.get_user_mode(message.chat.id), ' mode was set')
 
@@ -68,9 +68,9 @@ def mode_keyboard(message):
 
 @bot.callback_query_handler(func=lambda call: call.data in ['full', 'last'])
 def set_mode(call):
-    logger.info(call.message.chat.id, inspect.stack()[0][3])
+    logger.info(call.message.chat.id)
     sql_lite_db.set_user_mode(call.message.chat.id, call.data)
-    logger.info('mode was set to: ', sql_lite_db.get_user_mode(call.message.chat.id)[0])
+    logger.info('mode was set to: ', sql_lite_db.get_user_mode(call.message.chat.id))
     bot.send_message(call.message.chat.id,
                      'mode was set to: {}'.format(sql_lite_db.get_user_mode(call.message.chat.id)))
 
@@ -80,7 +80,7 @@ def callback_query(call):
     bot.answer_callback_query(call.id, "Доставляю")
     logger.info('uid is {}, name is {} '.format(call.message.chat.id, call.data))
     try:
-        all_data = sql_lite_db.get_values(call.data, call.message.chat.id)
+        all_data = sql_lite_db.get_values(call.data, str(call.message.chat.id))
         logger.info(all_data)
         if len(all_data['photos']) > 2:
             try:

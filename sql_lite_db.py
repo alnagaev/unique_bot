@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import datetime
 import logging
+import inspect
 
 module_logger = logging.getLogger("bot.sql_lite_db")
 
@@ -17,7 +18,7 @@ def test_query():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute(
-        '''SELECT * FROM files''')
+        '''SELECT * FROM users_mode''')
     conn.commit()
     return c.fetchall()
 
@@ -70,12 +71,10 @@ def get_values(title=None, user_id=None):
     module_logger.info('title is {} uid is {}'.format(title, user_id))
     if title and user_id:
         mode_status = get_user_mode(user_id)
-        module_logger.info('mode_status: ', mode_status)
         if mode_status == 'full':
             last_time = 0
         else:
             last_time = get_last_time(user_id)
-        module_logger.info('last_visit is: ', last_time[0])
         start = datetime.now()
         c.execute('''SELECT file_id FROM files WHERE chat_title = ? 
                      AND date > ? AND media_type = 'photo'  GROUP BY file_size''',
@@ -116,10 +115,12 @@ def get_user_mode(uid):
     c.execute('''SELECT mode FROM users_mode WHERE user_id = ?''', (uid, ))
     conn.commit()
     try:
-        return c.fetchone()[0]
-    except TypeError:
+        result = c.fetchone()[0]
+        module_logger.info(result)
+        return result
+    except TypeError as e:
         module_logger.info('0 records')
-        return 0
+        return None
 
 
 def get_chats():
