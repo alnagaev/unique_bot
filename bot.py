@@ -9,6 +9,8 @@ import logging
 import logging.config
 import inspect
 
+"""test revert commit"""
+
 bot = telebot.TeleBot(config.api_key)
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger("bot")
