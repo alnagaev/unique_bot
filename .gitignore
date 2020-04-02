@@ -136,3 +136,5 @@ images
 
 #token
 token.txt
+#logger
+logging.conf
