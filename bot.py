@@ -12,29 +12,37 @@ import subprocess
 
 """test revert commit"""
 from flask import Flask, request, abort
-from flask_sslify import SSLify
+from flask_talisman import Talisman
 
 app = Flask(__name__)
-
+Talisman(app)
 apihelper.proxy = {'https': 'socks5h://geek:socks@t.geekclass.ru:7777'}
 
-# sslify = SSLify(app)
+print(subprocess.check_output('echo $TOKEN', shell=True))
+
 
 def get_ngrok_url(port):
     if 'ngrok' in os.listdir():
         with open(os.devnull, 'w') as pipe:
-            subprocess.call(['./ngrok', 'http', str(port), '--host-header=site.local'], stdout=pipe, stderr=subprocess.STDOUT)
+            subprocess.Popen(['./ngrok', 'http', str(port), '--host-header=site.local'], stdout=pipe, stderr=subprocess.STDOUT)
         out = subprocess.check_output('curl http://localhost:4040/api/tunnels | jq ".tunnels[0].public_url"',
                                       shell=True)
         return str(out.strip(), 'utf-8').replace('"', '')
     raise FileNotFoundError
 
 
-API_TOKEN = config.api_key
 WEBHOOK_PORT = 8443  # 443, 80, 88 or 8443 (port need to be 'open')
-WEBHOOK_HOST = get_ngrok_url(WEBHOOK_PORT)
-WEBHOOK_LISTEN = '0.0.0.0'  # In some VPS you may need to put here the IP addr
 
+if os.environ.get('MODE') == 'prod':
+     API_TOKEN = os.environ.get('TOKEN')
+     HEROKU_APP_NAME = os.environ.get("HEROKU_APP_NAME")
+     WEBHOOK_HOST = "https://{}.herokuapp.com/".format(HEROKU_APP_NAME)
+else:
+    API_TOKEN = config.api_key
+    WEBHOOK_HOST = get_ngrok_url(WEBHOOK_PORT)
+
+
+WEBHOOK_LISTEN = '0.0.0.0'  # In some VPS you may need to put here the IP addr
 #
 WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Path to the ssl certificate
 WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Path to the ssl private key
@@ -49,12 +57,9 @@ logger = logging.getLogger("bot")
 bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
 
-
-
-
 @app.route('/', methods=['GET', 'HEAD'])
 def index():
-    return ''
+    return 'uniqpic bot test query'
 
 
 @app.route(WEBHOOK_URL_PATH, methods=['POST'])
@@ -95,9 +100,9 @@ def cmd_help(message):
 @bot.message_handler(commands=["start"])
 def cmd_start(message):
     logger.info('bot started')
-    if str(message.chat.id).startswith('-'):
+    if message.chat.type != "private":
         logger.info('channel posting is forbidden')
-        bot.send_message(message.chat.id, 'Я не спамлю группы. Обратитесь ко мне лично')
+        bot.reply_to(message, 'Я не спамлю группы. Обратитесь ко мне лично')
     else:
         keyboard = render_keyboard(sql_lite_db.get_chats())
         bot.send_message(message.chat.id, 'Выберите в меню группу, которая вам интересна',
@@ -111,7 +116,7 @@ def cmd_start(message):
 @bot.message_handler(commands=["mode"])
 def mode_keyboard(message):
     logger.info('mode menu')
-    if str(message.chat.id).startswith('-'):
+    if message.chat.type != "private":
         logger.info('channel posting is forbidden')
         bot.send_message(message.chat.id, 'Настройки режима недоступны в групповом чате')
     else:
@@ -159,13 +164,6 @@ def callback_query(call):
     except Exception as e:
         logger.error(e)
         bot.send_message(call.message.chat.id, 'Что-то пошло не так')
-
-
-@bot.message_handler(commands=['help', 'start'])
-def send_welcome(message):
-    bot.reply_to(message,
-                 ("Hi there, I am EchoBot.\n"
-                  "I am here to echo your kind words back to you."))
 
 
 def parse_response(message):
