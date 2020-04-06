@@ -6,10 +6,10 @@ from telebot import apihelper
 
 apihelper.proxy = {'https': 'socks5h://geek:socks@t.geekclass.ru:7777'}
 
-with open('token.txt', 'r') as f:
-    try:
+try:
+    with open('token.txt', 'r') as f:
         api_key = f.read()
-    except FileNotFoundError:
-        pass
+except FileNotFoundError:
+    pass
 
 
