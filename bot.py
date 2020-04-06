@@ -10,15 +10,13 @@ from time import sleep
 import os
 import subprocess
 
-"""test  dev/prod """
+"""configs  dev/prod """
 from flask import Flask, request, abort
 from flask_talisman import Talisman
 
 app = Flask(__name__)
 Talisman(app)
-apihelper.proxy = {'https': 'socks5h://geek:socks@t.geekclass.ru:7777'}
 
-print(subprocess.check_output('echo $TOKEN', shell=True))
 
 
 def get_ngrok_url(port):
@@ -37,13 +35,13 @@ if os.environ.get('MODE') == 'prod':
      API_TOKEN = os.environ.get('TOKEN')
      HEROKU_APP_NAME = os.environ.get("HEROKU_APP_NAME")
      WEBHOOK_HOST = "https://{}.herokuapp.com/".format(HEROKU_APP_NAME)
+
 else:
     API_TOKEN = config.api_key
     WEBHOOK_HOST = get_ngrok_url(WEBHOOK_PORT)
-
+    apihelper.proxy = {'https': 'socks5h://geek:socks@t.geekclass.ru:7777'}
 
 WEBHOOK_LISTEN = '0.0.0.0'  # In some VPS you may need to put here the IP addr
-#
 WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Path to the ssl certificate
 WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Path to the ssl private key
 
