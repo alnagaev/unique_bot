@@ -34,7 +34,7 @@ WEBHOOK_PORT = 8443  # 443, 80, 88 or 8443 (port need to be 'open')
 if os.environ.get('MODE') == 'prod':
      API_TOKEN = os.environ.get('TOKEN')
      HEROKU_APP_NAME = os.environ.get("HEROKU_APP_NAME")
-     WEBHOOK_HOST = "https://{}.herokuapp.com".format(HEROKU_APP_NAME)
+     WEBHOOK_HOST = "https://{}.herokuapp.com/".format(HEROKU_APP_NAME)
 
 else:
     API_TOKEN = config.api_key
