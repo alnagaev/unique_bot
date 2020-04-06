@@ -46,7 +46,7 @@ WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Path to the ssl certificate
 WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Path to the ssl private key
 
 WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
-WEBHOOK_URL_PATH = "%s/" % (API_TOKEN)
+WEBHOOK_URL_PATH = "{}/".format(API_TOKEN)
 """"""
 
 logging.config.fileConfig('logging.conf')
