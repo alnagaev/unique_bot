@@ -1,40 +1,71 @@
 import telebot
-from telebot import types
+from telebot import types, apihelper
 import config
-import time
 import sql_lite_db
 import jsonpickle
 import json
 import logging
 import logging.config
-import inspect
 from time import sleep
+import os
+import subprocess
 
 """test revert commit"""
-from flask import Flask, request
+from flask import Flask, request, abort
 from flask_sslify import SSLify
 
 app = Flask(__name__)
-sslify = SSLify(app)
 
-secret = config.api_key
-bot = telebot.TeleBot(config.api_key, threaded=False)
+apihelper.proxy = {'https': 'socks5h://geek:socks@t.geekclass.ru:7777'}
 
-bot.remove_webhook()
-time.sleep(1)
-bot.set_webhook(url="https://baklofen.pythonanywhere.com /{}".format(secret))
+# sslify = SSLify(app)
 
+def get_ngrok_url(port):
+    if 'ngrok' in os.listdir():
+        with open(os.devnull, 'w') as pipe:
+            subprocess.call(['./ngrok', 'http', str(port), '--host-header=site.local'], stdout=pipe, stderr=subprocess.STDOUT)
+        out = subprocess.check_output('curl http://localhost:4040/api/tunnels | jq ".tunnels[0].public_url"',
+                                      shell=True)
+        return str(out.strip(), 'utf-8').replace('"', '')
+    raise FileNotFoundError
+
+
+API_TOKEN = config.api_key
+WEBHOOK_PORT = 8443  # 443, 80, 88 or 8443 (port need to be 'open')
+WEBHOOK_HOST = get_ngrok_url(WEBHOOK_PORT)
+WEBHOOK_LISTEN = '0.0.0.0'  # In some VPS you may need to put here the IP addr
+
+#
+WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Path to the ssl certificate
+WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Path to the ssl private key
+
+WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
+WEBHOOK_URL_PATH = "/%s/" % (API_TOKEN)
 """"""
 
 logging.config.fileConfig('logging.conf')
 logger = logging.getLogger("bot")
 
+bot = telebot.TeleBot(API_TOKEN, threaded=False)
 
-@app.route('/{}'.format(secret), methods=["POST"])
+
+
+
+
+@app.route('/', methods=['GET', 'HEAD'])
+def index():
+    return ''
+
+
+@app.route(WEBHOOK_URL_PATH, methods=['POST'])
 def webhook():
-    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
-    print("Message")
-    return "ok", 200
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return ''
+    else:
+        abort(403)
 
 
 def render_keyboard(keys):
@@ -130,6 +161,13 @@ def callback_query(call):
         bot.send_message(call.message.chat.id, 'Что-то пошло не так')
 
 
+@bot.message_handler(commands=['help', 'start'])
+def send_welcome(message):
+    bot.reply_to(message,
+                 ("Hi there, I am EchoBot.\n"
+                  "I am here to echo your kind words back to you."))
+
+
 def parse_response(message):
     message = json.loads(jsonpickle.encode(message))
     type_m = message["content_type"]
@@ -175,5 +213,10 @@ def check_docs(message):
 #         # или import traceback; traceback.print_exc() для печати полной инфы
 #         time.sleep(15)
 
+bot.remove_webhook()
+
+sleep(0.1)
+bot.set_webhook(url=WEBHOOK_HOST + WEBHOOK_URL_PATH)
+
 if __name__ == '__main__':
-    app.run()
+    app.run(port=8443)
