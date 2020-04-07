@@ -214,8 +214,8 @@ bot.remove_webhook()
 sleep(0.1)
 bot.set_webhook(url=WEBHOOK_HOST + WEBHOOK_URL_PATH)
 
-if __name__ == '__main__':
-    if os.environ.get('MODE') == 'prod':
-        app.run()
-    else:
-        app.run(port=8443)
+# if __name__ == '__main__':
+if os.environ.get('MODE') == 'prod':
+    app.run()
+else:
+    app.run(port=8443)
