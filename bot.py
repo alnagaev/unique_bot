@@ -104,14 +104,14 @@ def cmd_start(message):
     else:
         try:
             keyboard = render_keyboard(sql_lite_db.get_chats())
+            bot.send_message(message.chat.id, 'Выберите в меню группу, которая вам интересна',
+                             reply_markup=keyboard)
+            logger.info(message)
+            if sql_lite_db.get_user_mode(message.chat.id) is None:
+                sql_lite_db.set_user_mode(message.chat.id, 'last')
+                logger.info(sql_lite_db.get_user_mode(message.chat.id), ' mode was set')
         except FileNotFoundError:
             bot.send_message(message.chat.id, 'Пока все пусто')
-        bot.send_message(message.chat.id, 'Выберите в меню группу, которая вам интересна',
-                         reply_markup=keyboard)
-        logger.info(message)
-        if sql_lite_db.get_user_mode(message.chat.id) is None:
-            sql_lite_db.set_user_mode(message.chat.id, 'last')
-            logger.info(sql_lite_db.get_user_mode(message.chat.id), ' mode was set')
 
 
 @bot.message_handler(commands=["mode"])
@@ -142,28 +142,30 @@ def callback_query(call):
     try:
         try:
             all_data = sql_lite_db.get_values(call.data, str(call.message.chat.id))
+            logger.info(all_data)
+            if len(all_data['photos']) > 2:
+                try:
+                    bot.send_media_group(call.message.chat.id, (types.InputMediaPhoto(i) for i in all_data['photos']))
+                except Exception as e:
+                    '''maybe make some regular for Bad Request or find another way'''
+                    chunks_ = chunks(all_data['photos'], 10)
+                    for chunk in chunks_:
+                        bot.send_media_group(call.message.chat.id, (types.InputMediaPhoto(i) for i in chunk))
+            else:
+                for i in all_data['photos']:
+                    bot.send_photo(call.message.chat.id, i)
+            if len(all_data['videos']) > 0:
+                bot.send_media_group(call.message.chat.id, (types.InputMediaVideo(i) for i in all_data['videos']))
+            if len(all_data['gifs']) > 0:
+                bot.send_media_group(call.message.chat.id, (types.InputMediaDocument(i) for i in all_data['gifs']))
+            if len(all_data['doc_images']) > 0:
+                for doc in all_data['doc_images']:
+                    bot.send_document(call.message.chat.id, doc)
+            sql_lite_db.session_add((call.message.chat.id, call.message.date))
+
         except FileNotFoundError:
             bot.send_message(call.message.chat.id, 'No data')
-        logger.info(all_data)
-        if len(all_data['photos']) > 2:
-            try:
-                bot.send_media_group(call.message.chat.id, (types.InputMediaPhoto(i) for i in all_data['photos']))
-            except Exception as e:
-                '''maybe make some regular for Bad Request or find another way'''
-                chunks_ = chunks(all_data['photos'], 10)
-                for chunk in chunks_:
-                    bot.send_media_group(call.message.chat.id, (types.InputMediaPhoto(i) for i in chunk))
-        else:
-            for i in all_data['photos']:
-                bot.send_photo(call.message.chat.id, i)
-        if len(all_data['videos']) > 0:
-            bot.send_media_group(call.message.chat.id, (types.InputMediaVideo(i) for i in all_data['videos']))
-        if len(all_data['gifs']) > 0:
-            bot.send_media_group(call.message.chat.id, (types.InputMediaDocument(i) for i in all_data['gifs']))
-        if len(all_data['doc_images']) > 0:
-            for doc in all_data['doc_images']:
-                bot.send_document(call.message.chat.id, doc)
-        sql_lite_db.session_add((call.message.chat.id, call.message.date))
+
 
     except Exception as e:
         logger.error(e)
