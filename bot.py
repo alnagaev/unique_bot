@@ -39,18 +39,21 @@ if os.environ.get('MODE') == 'prod':
      API_TOKEN = os.environ.get('TOKEN')
      HEROKU_APP_NAME = os.environ.get("HEROKU_APP_NAME")
      WEBHOOK_HOST = "https://{}.herokuapp.com/".format(HEROKU_APP_NAME)
+     WEBHOOK_URL_PATH = "{}/".format(API_TOKEN)
+     url = WEBHOOK_HOST + WEBHOOK_URL_PATH
 
 else:
     API_TOKEN = config.api_key
     WEBHOOK_HOST = get_ngrok_url(WEBHOOK_PORT)
     apihelper.proxy = {'https': 'socks5h://geek:socks@t.geekclass.ru:7777'}
+    WEBHOOK_URL_PATH = "{}/".format(API_TOKEN)
+    url = WEBHOOK_HOST + '/' + WEBHOOK_URL_PATH
 
 WEBHOOK_LISTEN = '0.0.0.0'  # In some VPS you may need to put here the IP addr
 WEBHOOK_SSL_CERT = './webhook_cert.pem'  # Path to the ssl certificate
 WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Path to the ssl private key
 
 WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
-WEBHOOK_URL_PATH = "{}/".format(API_TOKEN)
 
 print(WEBHOOK_HOST + '/' + WEBHOOK_URL_PATH)
 WEBHOOK_HOST + '/' + WEBHOOK_URL_PATH
