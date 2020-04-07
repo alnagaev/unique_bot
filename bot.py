@@ -1,13 +1,17 @@
 import telebot
 from telebot import types, apihelper
 import config
-import sql_lite_db
+
 import jsonpickle
 import json
 import logging
 import logging.config
 from time import sleep
 import os
+if os.environ.get('MODE') == 'prod':
+    import postgres_conf as sql
+else:
+    import sql_lite_db as sql
 import subprocess
 
 """configs  dev/prod """
@@ -47,6 +51,9 @@ WEBHOOK_SSL_PRIV = './webhook_pkey.pem'  # Path to the ssl private key
 
 WEBHOOK_URL_BASE = "https://%s:%s" % (WEBHOOK_HOST, WEBHOOK_PORT)
 WEBHOOK_URL_PATH = "{}/".format(API_TOKEN)
+
+print(WEBHOOK_HOST + '/' + WEBHOOK_URL_PATH)
+WEBHOOK_HOST + '/' + WEBHOOK_URL_PATH
 """"""
 
 logging.config.fileConfig('logging.conf')
@@ -103,13 +110,13 @@ def cmd_start(message):
         bot.reply_to(message, 'Я не спамлю группы. Обратитесь ко мне лично')
     else:
         try:
-            keyboard = render_keyboard(sql_lite_db.get_chats())
+            keyboard = render_keyboard(sql.get_chats())
             bot.send_message(message.chat.id, 'Выберите в меню группу, которая вам интересна',
                              reply_markup=keyboard)
             logger.info(message)
-            if sql_lite_db.get_user_mode(message.chat.id) is None:
-                sql_lite_db.set_user_mode(message.chat.id, 'last')
-                logger.info(sql_lite_db.get_user_mode(message.chat.id), ' mode was set')
+            if sql.get_user_mode(message.chat.id) is None:
+                sql.set_user_mode(message.chat.id, 'last')
+                logger.info(sql.get_user_mode(message.chat.id), ' mode was set')
         except FileNotFoundError:
             bot.send_message(message.chat.id, 'Пока все пусто')
 
@@ -129,10 +136,10 @@ def mode_keyboard(message):
 @bot.callback_query_handler(func=lambda call: call.data in ['full', 'last'])
 def set_mode(call):
     logger.info(call.message.chat.id)
-    sql_lite_db.set_user_mode(call.message.chat.id, call.data)
-    logger.info('mode was set to: ', sql_lite_db.get_user_mode(call.message.chat.id))
+    sql.set_user_mode(call.message.chat.id, call.data)
+    logger.info('mode was set to: ', sql.get_user_mode(call.message.chat.id))
     bot.send_message(call.message.chat.id,
-                     'mode was set to: {}'.format(sql_lite_db.get_user_mode(call.message.chat.id)))
+                     'mode was set to: {}'.format(sql.get_user_mode(call.message.chat.id)))
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -141,7 +148,7 @@ def callback_query(call):
     logger.info('uid is {}, name is {} '.format(call.message.chat.id, call.data))
     try:
         try:
-            all_data = sql_lite_db.get_values(call.data, str(call.message.chat.id))
+            all_data = sql.get_values(call.data, str(call.message.chat.id))
             logger.info(all_data)
             if len(all_data['photos']) > 2:
                 try:
@@ -161,7 +168,7 @@ def callback_query(call):
             if len(all_data['doc_images']) > 0:
                 for doc in all_data['doc_images']:
                     bot.send_document(call.message.chat.id, doc)
-            sql_lite_db.session_add((call.message.chat.id, call.message.date))
+            sql.session_add((call.message.chat.id, call.message.date))
 
         except FileNotFoundError:
             bot.send_message(call.message.chat.id, 'No data')
@@ -202,7 +209,7 @@ def check_docs(message):
     logger.info(message)
     row = parse_response(message)
     try:
-        sql_lite_db.add_values(row)
+        sql.add_values(row)
     except Exception as e:
         bot.send_message(message.chat.id, 'Data not collected yet')
         logger.error(str(e))
@@ -220,7 +227,7 @@ def check_docs(message):
 bot.remove_webhook()
 
 sleep(0.1)
-bot.set_webhook(url=WEBHOOK_HOST + WEBHOOK_URL_PATH)
+bot.set_webhook(url=url)
 
 if __name__ == '__main__':
     if os.environ.get('MODE') == 'prod':
