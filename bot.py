@@ -60,7 +60,7 @@ def index():
     return 'uniqpic bot test query'
 
 
-@app.route(WEBHOOK_URL_PATH, methods=['POST'])
+@app.route('/'+WEBHOOK_URL_PATH, methods=['POST'])
 def webhook():
     if request.headers.get('content-type') == 'application/json':
         json_string = request.get_data().decode('utf-8')
