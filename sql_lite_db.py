@@ -18,10 +18,11 @@ def test_query():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     c.execute(
-        '''SELECT * FROM users_mode''')
+        '''CREATE TABLE IF NOT EXISTS files
+                (file_id text, date integer, file_size integer, media_type text, chat_id text, chat_title text)'''
+    )
     conn.commit()
     return c.fetchall()
-
 
 
 def get_last_time(user_id):
@@ -69,6 +70,14 @@ def get_values(title=None, user_id=None):
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
     module_logger.info('title is {} uid is {}'.format(title, user_id))
+    c.execute(
+        '''CREATE TABLE IF NOT EXISTS files
+                (file_id text, date integer, file_size integer, media_type text, chat_id text, chat_title text)'''
+    )
+    conn.commit()
+    c.execute('SELECT COUNT(*) from files')
+    if c.fetchone()[0] == 0:
+        raise FileNotFoundError
     if title and user_id:
         mode_status = get_user_mode(user_id)
         if mode_status == 'full':
@@ -126,6 +135,9 @@ def get_user_mode(uid):
 def get_chats():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
+    c.execute('SELECT COUNT(*) from files')
+    if c.fetchone()[0] == 0:
+        raise FileNotFoundError
     c.execute('''SELECT DISTINCT chat_title FROM files''')
     final_result = [i[0] for i in c.fetchall() if i[0] is not None]
     module_logger.info(final_result)

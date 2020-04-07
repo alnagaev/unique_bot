@@ -102,7 +102,10 @@ def cmd_start(message):
         logger.info('channel posting is forbidden')
         bot.reply_to(message, 'Я не спамлю группы. Обратитесь ко мне лично')
     else:
-        keyboard = render_keyboard(sql_lite_db.get_chats())
+        try:
+            keyboard = render_keyboard(sql_lite_db.get_chats())
+        except FileNotFoundError:
+            bot.send_message(message.chat.id, 'Пока все пусто')
         bot.send_message(message.chat.id, 'Выберите в меню группу, которая вам интересна',
                          reply_markup=keyboard)
         logger.info(message)
@@ -137,7 +140,10 @@ def callback_query(call):
     bot.answer_callback_query(call.id, "Доставляю")
     logger.info('uid is {}, name is {} '.format(call.message.chat.id, call.data))
     try:
-        all_data = sql_lite_db.get_values(call.data, str(call.message.chat.id))
+        try:
+            all_data = sql_lite_db.get_values(call.data, str(call.message.chat.id))
+        except FileNotFoundError:
+            bot.send_message(call.message.chat.id, 'No data')
         logger.info(all_data)
         if len(all_data['photos']) > 2:
             try:
