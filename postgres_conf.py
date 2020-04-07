@@ -118,6 +118,18 @@ def get_values(title=None, user_id=None):
         return {'photos': photos, 'videos': videos, 'gifs': gifs, 'doc_images': doc_images}
 
 
+def set_user_mode(uid, mode):
+    conn = psycopg2.connect(dbname='ded22jl3v2q4tm', user='omkkrbovhjnvrx', port='5432',
+                            password='4d391132de0bbff018b79d63cd51758c0395216e1d90dc32594da3b4762d70bf',
+                            host='ec2-54-217-204-34.eu-west-1.compute.amazonaws.com')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users_mode (user_id integer UNIQUE, mode text)''')
+    c.execute('''INSERT OR REPLACE INTO users_mode VALUES(?, ?)''', (uid, mode))
+    conn.commit()
+    c.close()
+    module_logger.info('value added')
+
+
 def get_user_mode(uid):
     conn = psycopg2.connect(dbname='ded22jl3v2q4tm', user='omkkrbovhjnvrx', port='5432',
                             password='4d391132de0bbff018b79d63cd51758c0395216e1d90dc32594da3b4762d70bf',
