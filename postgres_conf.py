@@ -135,13 +135,14 @@ def get_user_mode(uid):
                             password='4d391132de0bbff018b79d63cd51758c0395216e1d90dc32594da3b4762d70bf',
                             host='ec2-54-217-204-34.eu-west-1.compute.amazonaws.com')
     c = conn.cursor()
-    c.execute('''SELECT mode FROM users_mode WHERE user_id = %s''', (uid, ))
-    conn.commit()
     try:
+        c.execute('''SELECT mode FROM users_mode WHERE user_id = %s''', (uid, ))
+        conn.commit()
         result = c.fetchone()[0]
         module_logger.info(result)
         return result
-    except TypeError as e:
+
+    except psycopg2.Error as e:
         module_logger.info('0 records')
         return None
 
@@ -151,13 +152,14 @@ def get_chats():
                             password='4d391132de0bbff018b79d63cd51758c0395216e1d90dc32594da3b4762d70bf',
                             host='ec2-54-217-204-34.eu-west-1.compute.amazonaws.com')
     c = conn.cursor()
-    c.execute('SELECT COUNT(*) from files')
-    if c.fetchone()[0] == 0:
+    try:
+        c.execute('''SELECT DISTINCT chat_title FROM files''')
+        final_result = [i[0] for i in c.fetchall() if i[0] is not None]
+        module_logger.info(final_result)
+        return final_result
+    except psycopg2.Error as e:
         raise FileNotFoundError
-    c.execute('''SELECT DISTINCT chat_title FROM files''')
-    final_result = [i[0] for i in c.fetchall() if i[0] is not None]
-    module_logger.info(final_result)
-    return final_result
+
 
 
 def test_query():
