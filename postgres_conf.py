@@ -31,12 +31,12 @@ def get_last_time(user_id):
                             password='4d391132de0bbff018b79d63cd51758c0395216e1d90dc32594da3b4762d70bf',
                             host='ec2-54-217-204-34.eu-west-1.compute.amazonaws.com')
     c = conn.cursor()
-    c.execute(
-            '''SELECT date FROM sessions WHERE user_id = %s ''', (user_id,))
-    conn.commit()
     try:
+        c.execute(
+            '''SELECT date FROM sessions WHERE user_id = %s ''', (user_id,))
+        conn.commit()
         return c.fetchone()[0]
-    except TypeError:
+    except psycopg2.Error:
         return 0
 
 
@@ -124,7 +124,8 @@ def set_user_mode(uid, mode):
                             host='ec2-54-217-204-34.eu-west-1.compute.amazonaws.com')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS users_mode (user_id integer UNIQUE, mode text)''')
-    c.execute('''INSERT OR REPLACE INTO users_mode VALUES(?, ?)''', (uid, mode))
+    c.execute('''INSERT INTO users_mode as um (user_id, mode) VALUES(%s, %s) ON CONFLICT (user_id)
+                DO UPDATE SET mode = um.mode WHERE um.user_id = %s''', (uid, mode, uid))
     conn.commit()
     c.close()
     module_logger.info('value added')
