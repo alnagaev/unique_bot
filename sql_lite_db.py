@@ -59,7 +59,7 @@ def session_add(values):
     c = conn.cursor()
     c.execute(
         '''CREATE TABLE IF NOT EXISTS sessions
-                (user_id integer UNIQUE, last_time integer, current_time integer)''')
+                (user_id integer UNIQUE, date integer)''')
     c.execute('''INSERT OR REPLACE INTO  sessions VALUES (?, ?)''', values)
     conn.commit()
     module_logger.info(c.fetchall())
