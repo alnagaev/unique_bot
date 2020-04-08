@@ -71,7 +71,7 @@ def session_add(values):
         '''CREATE TABLE IF NOT EXISTS sessions
                 (user_id integer UNIQUE, date integer)''')
     c.execute('''INSERT INTO sessions as ss (user_id, date) VALUES(%s, %s) ON CONFLICT (user_id)
-                DO UPDATE SET date = um.date WHERE um.user_id = %s''', (uid, date, uid))
+                DO UPDATE SET date = ss.date WHERE ss.user_id = %s''', (uid, date, uid))
     conn.commit()
 
 
