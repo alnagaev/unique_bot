@@ -62,14 +62,16 @@ def change_time():
 
 
 def session_add(values):
+    uid, date = values
     conn = psycopg2.connect(dbname='ded22jl3v2q4tm', user='omkkrbovhjnvrx', port='5432',
                             password='4d391132de0bbff018b79d63cd51758c0395216e1d90dc32594da3b4762d70bf',
                             host='ec2-54-217-204-34.eu-west-1.compute.amazonaws.com')
     c = conn.cursor()
     c.execute(
         '''CREATE TABLE IF NOT EXISTS sessions
-                (user_id integer UNIQUE, last_time integer, current_time integer)''')
-    c.execute('''INSERT OR REPLACE INTO  sessions VALUES (%s, %s, %s)''', values)
+                (user_id integer UNIQUE, date integer)''')
+    c.execute('''INSERT INTO sessions as ss (user_id, date) VALUES(%s, %s) ON CONFLICT (user_id)
+                DO UPDATE SET date = um.date WHERE um.user_id = %s''', (uid, date, uid))
     conn.commit()
 
 
@@ -164,7 +166,10 @@ def test_query():
                             password='4d391132de0bbff018b79d63cd51758c0395216e1d90dc32594da3b4762d70bf',
                             host='ec2-54-217-204-34.eu-west-1.compute.amazonaws.com')
     c = conn.cursor()
-    c.execute('''SELECT * FROM files''')
+    c.execute('''SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                ORDER BY table_name;''')
     conn.commit()
     return c.fetchall()
 
