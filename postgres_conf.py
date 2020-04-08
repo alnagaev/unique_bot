@@ -95,21 +95,17 @@ def get_values(title=None, user_id=None):
         else:
             last_time = get_last_time(user_id)
         start = datetime.now()
-        c.execute('''SELECT file_id FROM files WHERE chat_title = %s 
-                     AND date > %s AND media_type = 'photo'  GROUP BY file_size''',
-                  (title, last_time))
+        c.execute('''SELECT DISTINCT ON (file_size) file_id FROM files WHERE chat_title = %s
+                       AND date > %s AND media_type = 'photo' ''', (title, last_time))
         photos = [i[0] for i in c.fetchall()]
-        c.execute('''SELECT file_id FROM files WHERE chat_title = %s 
-                      AND date > %s AND media_type = 'video'  GROUP BY file_size''',
-                  (title, last_time))
+        c.execute('''SELECT DISTINCT ON (file_size) file_id FROM files WHERE chat_title = %s
+                       AND date > %s AND media_type = 'video' ''', (title, last_time))
         videos = [i[0] for i in c.fetchall()]
-        c.execute('''SELECT file_id FROM files WHERE chat_title = %s 
-                      AND date > %s AND media_type = 'video/mp4'  GROUP BY file_size''',
-                  (title, last_time))
+        c.execute('''SELECT DISTINCT ON (file_size) file_id FROM files WHERE chat_title = %s
+                       AND date > %s AND media_type = 'video/mp4' ''', (title, last_time))
         gifs = [i[0] for i in c.fetchall()]
-        c.execute('''SELECT file_id FROM files WHERE chat_title = %s 
-                      AND date > %s AND media_type = 'image/jpeg'  GROUP BY file_size''',
-                  (title, last_time))
+        c.execute('''SELECT DISTINCT ON (file_size) file_id FROM files WHERE chat_title = %s
+                       AND date > %s AND media_type = 'image/jpeg' ''', (title, last_time))
         doc_images = [i[0] for i in c.fetchall()]
         c.close()
         stop = datetime.now()
