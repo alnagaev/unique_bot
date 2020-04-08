@@ -69,7 +69,7 @@ def session_add(values):
     c.execute(
         '''CREATE TABLE IF NOT EXISTS sessions
                 (user_id integer UNIQUE, last_time integer, current_time integer)''')
-    c.execute('''INSERT OR REPLACE INTO  sessions VALUES (%s, %s)''', values)
+    c.execute('''INSERT OR REPLACE INTO  sessions VALUES (%s, %s, %s)''', values)
     conn.commit()
 
 
